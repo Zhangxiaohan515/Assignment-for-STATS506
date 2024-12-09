@@ -1,0 +1,680 @@
+---
+title: "STATS 506 Final Project"
+format: html
+---
+
+```{r}
+library(tidyverse)
+library(data.table)
+
+# Extract female data
+column_widths1 <- c(
+  rep(1, 35) , # First 35 columns
+  2     ,    # HIGRADE (36-37)
+  rep(1, 51-37), # Skip unrelated columns
+  1, # HAVEDEG(52-52)
+  1, #DEGREES(53-53)
+  rep(1,2218-53),
+  1, #STHCON12(2219)
+  1, #MEDTST12(2220)
+  1, #BCCNS12(2221)
+  1, #STEROP12(2222)
+  1, #STCNS12(2223)
+  rep(1,2376-2223),
+  1, #LASTPAP(2377)
+  1, #MREASPAP(2378)
+  rep(1, 2386-2378),
+  1, #MREASPEL(2387)
+  rep(1, 2390-2387),
+  2, #INTPEL(2391-2392)
+  rep(1,2409-2392),
+  1,# RWANT(2410)
+  rep(1,2415-2410),
+  2,#JINTENDN(2415-2416)
+  rep(1,2422-2416),
+  2,#INTENDN(2423-2424)
+  rep(1,2427-2424),
+  1, #INTNEXT(2428)
+  rep(1, 2623-2428),
+  1, # USUALCAR(2624)
+  rep(1, 2628-2624),
+  2, #COVERHOW01(2629-2630)
+  rep(1, 3833-2630) 
+  #intvlngth
+  
+)
+
+female_data<-read.fwf("C:/Users/张笑菡/Desktop/Preparation for UMich/Computational Methods and Tools-506/Assignment-for-STATS506/2017_2019_FemRespData.dat",
+                      widths = column_widths1, header =FALSE)
+
+colnames(female_data) <- c(
+  paste0("V", 1:35), 
+  "HIGRADE", 
+  paste0("V", 38:51), 
+  "HAVEDEG", "DEGREES", 
+  paste0("V", 54:2218), 
+  "STHCON12", "MEDTST12", "BCCNS12", "STEROP12", "STCNS12",
+  paste0("V", 2224:2376), 
+  "LASTPAP", "MREASPAP", 
+  paste0("V", 2379:2386), 
+  "MREASPEL", 
+  paste0("V", 2388:2390), 
+  "INTPEL", 
+  paste0("V", 2393:2409), 
+  "RWANT", 
+  paste0("V", 2411:2414), 
+  "JINTENDN", 
+  paste0("V", 2417:2422), 
+  "INTENDN", 
+  paste0("V", 2425:2427), 
+  "INTNEXT", 
+  paste0("V", 2429:2623), 
+  "USUALCAR", 
+  paste0("V", 2625:2628), 
+  "COVERHOW01", 
+  paste0("V", 2631:3833), 
+  "final"
+)
+
+# Extract male data
+column_widths2 <- c(
+  rep(1, 30),   # First 30 columns
+  2,           # HIGRADE (31-32)
+  rep(1, 46 - 32),  # Skip unrelated columns
+  1,           # HAVEDEG (47-47)
+  1,           # DEGREES (48-48)
+  rep(1, 3275 - 48), # Skip unrelated columns
+  1,           # RWANT (3276-3276)
+  1,           # JINTEND (3277-3277)
+  rep(1, 3279 - 3277),
+  2,           # JINTENDN (3280-3281)
+  rep(1, 3284 - 3281), # Skip unrelated columns
+  1,           # JINTNEXT (3285-3285)
+  rep(1, 3286 - 3285),
+  2,           # INTENDN (3287-3288)
+  rep(1, 3291 - 3288),
+  1,           # INTNEXT (3292-3292)
+  1,           # USUALCAR (3293-3293)
+  2,           # USPLPLACE (3294-3295)
+  rep(1,3296-3295 ),
+  1,           # CURRCOV (3297-3297)
+  rep(1, 3306-3297),
+  2,           # NUMNOCOV (3307-3308)
+  rep(1, 3309 - 3308), # Skip unrelated columns
+  2, #WHENGOFP(3310-3311)
+  rep(1,3427-3311),
+  2,           # PLCHIV (3428-3429)
+  rep(1, 4082 - 3429),  # Remaining columns
+  6            # intvlngth (4083-4088)
+)
+
+male_data<-read.fwf("C:/Users/张笑菡/Desktop/Preparation for UMich/Computational Methods and Tools-506/Assignment-for-STATS506/2017_2019_MaleData.dat",
+                    widths = column_widths2, header =FALSE)
+
+colnames(male_data) <- c(
+  paste0("V", 1:30), "HIGRADE",
+  paste0("V", 33:46), "HAVEDEG", "DEGREES",
+  paste0("V", 49:3275), "RWANT", "JINTEND", paste0("V", 3278:3279),"JINTENDN",
+  paste0("V", 3282:3284), "JINTNEXT",paste0("V", 3286:3286), "INTENDN",
+  paste0("V", 3289:3291), "INTNEXT", "USUALCAR", "USPLPLACE", paste0("V",3296:3296),
+  "CURRCOV", paste0("V",3298:3306), "NUMNOCOV",
+  paste0("V", 3309:3309),"WHENGOFP",paste0("V",3312:3427),"PLCHIV",
+  paste0("V", 3430:4082),  "intvlngth"
+)
+
+library(dplyr)
+colnames(female_data)
+female_data<-female_data %>%
+  mutate(gender="female")
+male_data<-male_data %>%
+  mutate(gender="male")
+
+# Extract usable female data
+female_key <- female_data %>%
+  select(gender, HIGRADE, HAVEDEG, DEGREES, LASTPAP, MREASPAP,
+         MREASPEL, RWANT, JINTENDN, INTENDN, INTNEXT, INTPEL,
+         STHCON12, MEDTST12, BCCNS12, STEROP12,
+         STCNS12, USUALCAR, COVERHOW01)
+
+# Extract usable male data
+male_key <- male_data %>% select(gender, HIGRADE, HAVEDEG, DEGREES, 
+                                 RWANT, JINTEND, JINTENDN, JINTNEXT, NUMNOCOV,
+                                 CURRCOV, WHENGOFP,
+                                 INTENDN, INTNEXT, USUALCAR, USPLPLACE, PLCHIV)
+
+# Explore education levels for males and females
+male_key <- male_key %>%
+  mutate(
+    HIGRADE = ifelse(HIGRADE %in% c(98, 99), NA, HIGRADE),
+    HAVEDEG = ifelse(HIGRADE < 13, NA, HAVEDEG),
+    DEGREES = ifelse(DEGREES == 9 | (HAVEDEG != 1), NA, DEGREES)
+  )
+male_key<- male_key %>%
+  filter(!(is.na(HIGRADE) & is.na(HAVEDEG) & is.na(DEGREES)))
+
+# Combine male and female data
+combined_data<-bind_rows(female_key,male_key)
+
+# Categorize education level
+combined_data <- combined_data %>%
+  mutate(
+    education_level = case_when(
+      HIGRADE < 13 ~ "High School or Below",
+      HIGRADE >= 13 & HAVEDEG == 5 ~ "Completed High School, No Degree",
+      HIGRADE >= 13 & HAVEDEG == 1 & is.na(DEGREES) ~ "Degree Missing",
+      HIGRADE >= 13 & HAVEDEG == 1 & DEGREES == 1 ~ "Associate's Degree",
+      HIGRADE >= 13 & HAVEDEG == 1 & DEGREES == 2 ~ "Bachelor's Degree",
+      HIGRADE >= 13 & HAVEDEG == 1 & DEGREES == 3 ~ "Master's Degree",
+      HIGRADE >= 13 & HAVEDEG == 1 & DEGREES == 4 ~ "Doctorate Degree",
+      HIGRADE >= 13 & HAVEDEG == 1 & DEGREES == 5 ~ "Professional School Degree"
+    )
+  )
+
+# Convert education levels into factors
+combined_data <- combined_data %>%
+  mutate(
+    education_level = factor(
+      education_level,
+      levels = c(
+        "High School or Below",
+        "Completed High School, No Degree",
+        "Degree Missing",
+        "Associate's Degree",
+        "Bachelor's Degree",
+        "Master's Degree",
+        "Professional School Degree",
+        "Doctorate Degree"
+      )
+    )
+  )
+
+# Categorize overall education levels
+combined_data <- combined_data %>%
+  mutate(
+    education_overall = case_when(
+      education_level %in% c("Master's Degree", "Doctorate Degree", "Professional School Degree") ~ "High Education",
+      education_level %in% c("Bachelor's Degree", "Associate's Degree") ~ "Medium Education",
+      education_level %in% c("High School or Below", "Completed High School, No Degree") ~ "Low Education",
+      TRUE ~ "Unknown"
+    )
+  )
+
+# Explore fertility intentions for males and females, considering timing and degree
+combined_data <- combined_data %>%
+  mutate(
+    fertility_intention = case_when(
+      RWANT == 1 & !is.na(JINTENDN) ~ "Strong Intention",
+      RWANT == 1 & is.na(JINTENDN) ~ "Moderate Intention",
+      RWANT == 5 ~ "Weak Intention",
+      TRUE ~ "Unknown"
+    )
+  )
+
+# Categorize the timing of fertility intentions
+# INTNEXT-- the time of having a baby
+combined_data <- combined_data %>%
+  mutate(
+    fertility_timing = case_when(
+      INTNEXT == 1 ~ "Near Term",
+      INTNEXT == 2 ~ "Mid Term",
+      INTNEXT == 3 ~ "Long Term",
+      TRUE ~ "Unknown"
+    )
+  )
+
+# Define comprehensive reproductive intention (combining RWANT, JINTENDN, INTNEXT)
+combined_data <- combined_data %>%
+  mutate(
+    comprehensive_intention = case_when(
+      RWANT == 1 & !is.na(JINTENDN) & INTNEXT == 1 ~ "Strong",
+      RWANT == 1 & INTNEXT %in% c(2, 3) ~ "Moderate",
+      RWANT == 5 ~ "No Intention",
+      TRUE ~ "Unknown"
+    )
+  )
+
+
+# the difference between male and female
+# Split male and female data
+male_key2 <- combined_data %>%
+  filter(gender == "male")
+female_key2 <- combined_data %>%
+  filter(gender == "female")
+
+# Examine the impact of health status and access on fertility intention for males and females separately
+# Female: define health condition and medical access indicators
+
+# health condition-- female and male respectively
+female_key2 <- female_key2 %>%
+  mutate(
+    # Health condition indicators
+    STHCON12_score = ifelse(STHCON12 == 1, 1, 0),
+    MEDTST12_score = ifelse(MEDTST12 == 1, 1, 0),
+    STEROP12_score = ifelse(STEROP12 == 1, 1, 0),
+    BCCNS12_score = ifelse(BCCNS12 == 1, 1, 0),
+    STCNS12_score = ifelse(STCNS12 == 1, 1, 0),
+    
+    # Medical access indicators
+    USUALCAR_score = ifelse(USUALCAR == 1, 1, 0),
+    COVERHOW01_score = ifelse(COVERHOW01 == 1, 1, 0),
+    INTPEL_score = case_when(
+      INTPEL == 1 ~ 1, # Annual examination
+      INTPEL == 2 ~ 0.8, # Every two years
+      INTPEL == 3 ~ 0.6, # Every three years
+      INTPEL == 4 ~ 0.4, # Every four years
+      INTPEL == 5 ~ 0.2, # Every five years
+      TRUE ~ 0  # Other situations
+    )
+  )
+
+# Calculate comprehensive scores for medical access and personal health
+# Analyze how health access and personal health affect fertility intention individually and jointly
+female_key2 <- female_key2 %>%
+  mutate(
+    health_status_score = rowMeans(select(., STHCON12_score, MEDTST12_score, STEROP12_score, 
+                                          BCCNS12_score, STCNS12_score), na.rm = TRUE),
+    health_access_score = rowMeans(select(., USUALCAR_score, COVERHOW01_score, INTPEL_score), na.rm = TRUE)
+  )
+
+
+female_key2 <- female_key2 %>%
+  mutate(
+    health_status = case_when(
+      health_status_score < 0.33 ~ "Poor",
+      health_status_score >= 0.33 & health_status_score < 0.67 ~ "Average",
+      health_status_score >= 0.67 ~ "Good"
+    ),
+    health_access = case_when(
+      health_access_score < 0.33 ~ "Low Access",
+      health_access_score >= 0.33 & health_access_score < 0.67 ~ "Moderate Access",
+      health_access_score >= 0.67 ~ "High Access"
+    )
+  )
+
+# Plot health status distribution for females
+ggplot(female_key2 %>%
+         group_by(health_status) %>%
+         summarise(count = n())) +
+  aes(x = health_status, y = count, fill = health_status) +
+  geom_bar(stat = "identity") +
+  labs(
+    title = "Health Status Distribution (Female)",
+    x = "Health Status",
+    y = "Count"
+  ) +
+  theme_minimal()
+
+# Plot health access distribution for females
+ggplot(female_key2 %>%
+         group_by(health_access) %>%
+         summarise(count = n())) +
+  aes(x = health_access, y = count, fill = health_access) +
+  geom_bar(stat = "identity") +
+  labs(
+    title = "Health Access Distribution (Female)",
+    x = "Health Access",
+    y = "Count"
+  ) +
+  theme_minimal()
+
+# Male: define health condition and medical access indicators
+male_key2 <- male_key2 %>%
+  mutate(
+    # Health condition indicators
+    CURRCOV_score = ifelse(CURRCOV == 1, 1, 0), # Currently insured
+    PLCHIV_score = ifelse(PLCHIV == 1, 1, 0),   # Received HIV test at a trusted facility
+    
+    # Medical access indicators
+    USUALCAR_score = ifelse(USUALCAR == 1, 1, 0), # Has regular medical care facility
+    NUMNOCOV_score = case_when(                    # Months without insurance in the past year
+      NUMNOCOV == 1 ~ 1,                           # 1 month without insurance
+      NUMNOCOV == 2 ~ 0.9,
+      NUMNOCOV == 3 ~ 0.8,
+      NUMNOCOV == 4 ~ 0.7,
+      NUMNOCOV == 5 ~ 0.6,
+      NUMNOCOV == 6 ~ 0.5,
+      NUMNOCOV == 7 ~ 0.4,
+      NUMNOCOV == 8 ~ 0.3,
+      NUMNOCOV == 9 ~ 0.2,
+      NUMNOCOV >= 10 ~ 0.1,
+      TRUE ~ 0
+    ),
+    WHENGOFP_score = case_when(                    # Most recent family planning service visit间
+      WHENGOFP == 1 ~ 1,                          # Within the last 12 months
+      WHENGOFP == 2 ~ 0.5,                        # Over 12 months ago
+      TRUE ~ 0
+    )
+  )
+
+
+# Calculate comprehensive scores for health status and medical access
+male_key2 <- male_key2 %>%
+  mutate(
+    # Health status score
+    health_status_score = rowMeans(select(., CURRCOV_score, PLCHIV_score), na.rm = TRUE),
+    
+    # Medical access score
+    health_access_score = rowMeans(select(., USUALCAR_score, NUMNOCOV_score, WHENGOFP_score), na.rm = TRUE)
+  )
+
+# Categorize health status and medical access levels
+male_key2 <- male_key2 %>%
+  mutate(
+    health_status = case_when(
+      health_status_score < 0.33 ~ "Poor",
+      health_status_score >= 0.33 & health_status_score < 0.67 ~ "Average",
+      health_status_score >= 0.67 ~ "Good"
+    ),
+    health_access = case_when(
+      health_access_score < 0.33 ~ "Low Access",
+      health_access_score >= 0.33 & health_access_score < 0.67 ~ "Moderate Access",
+      health_access_score >= 0.67 ~ "High Access"
+    )
+  )
+
+# Plot health status distribution for males
+ggplot(male_key2 %>%
+         group_by(health_status) %>%
+         summarise(count = n())) +
+  aes(x = health_status, y = count, fill = health_status) +
+  geom_bar(stat = "identity") +
+  labs(
+    title = "Health Status Distribution (Male)",
+    x = "Health Status",
+    y = "Count"
+  ) +
+  theme_minimal()
+
+# Plot medical access distribution for males
+ggplot(male_key2 %>%
+         group_by(health_access) %>%
+         summarise(count = n())) +
+  aes(x = health_access, y = count, fill = health_access) +
+  geom_bar(stat = "identity") +
+  labs(
+    title = "Health Access Distribution (Male)",
+    x = "Health Access",
+    y = "Count"
+  ) +
+  theme_minimal()
+
+# Analyze the relationship between health status, access, and comprehensive fertility intention
+# Female: Analyze health status and comprehensive fertility intention
+ggplot(female_key2 %>%
+         group_by(health_status, comprehensive_intention) %>%
+         summarise(count = n())) +
+  aes(x = health_status, y = count, fill = as.factor(comprehensive_intention)) +
+  geom_bar(stat = "identity", position = position_dodge(width = 0.8)) +
+  scale_fill_manual(
+    values = c("#E69F00", "#56B4E9", "#009E73"), # 调整为对比度更高的颜色
+    labels = c("Moderate", "No Intention", "Unknown") # 对类别添加更清晰的标签
+  ) +
+  labs(
+    title = "Health Status and Female Future Reproductive Intention",
+    x = "Health Status",
+    y = "Count",
+    fill = "Reproductive Intention"
+  ) +
+  theme_minimal(base_size = 14) +
+  theme(
+    plot.title = element_text(face = "bold", hjust = 0.5, size = 16), # 突出标题
+    axis.title.x = element_text(size = 14),
+    axis.title.y = element_text(size = 14),
+    axis.text.x = element_text(angle = 45, hjust = 1, size = 12), # X轴标签旋转并加大字号
+    legend.position = "top", # 将图例放在顶部
+    legend.title = element_text(size = 12),
+    legend.text = element_text(size = 12)
+  ) +
+  geom_text(
+    aes(label = count), 
+    position = position_dodge(width = 0.8), 
+    vjust = -0.5, size = 3.5 # 添加柱形顶部的计数值标签
+  )
+
+# Female: Analyze health access and comprehensive fertility intention
+ggplot(female_key2 %>%
+         group_by(health_access, comprehensive_intention) %>%
+         summarise(count = n())) +
+  aes(x = health_access, y = count, fill = as.factor(comprehensive_intention)) +
+  geom_bar(stat = "identity", position = position_dodge(width = 0.8)) +
+  scale_fill_manual(
+    values = c("#E69F00", "#56B4E9", "#009E73"), # 提高对比度的颜色
+    labels = c("Moderate", "No Intention", "Unknown") # 为类别添加清晰的标签
+  ) +
+  labs(
+    title = "Receipt of Service and Female Future Reproductive Intention",
+    x = "The Receipt of Service",
+    y = "Count",
+    fill = "Reproductive Intention"
+  ) +
+  theme_minimal(base_size = 14) +
+  theme(
+    plot.title = element_text(face = "bold", hjust = 0.5, size = 16), # 突出标题
+    axis.title.x = element_text(size = 14),
+    axis.title.y = element_text(size = 14),
+    axis.text.x = element_text(angle = 45, hjust = 1, size = 12), # 旋转X轴标签
+    legend.position = "top", # 图例放置在顶部
+    legend.title = element_text(size = 12),
+    legend.text = element_text(size = 12)
+  ) +
+  geom_text(
+    aes(label = count), 
+    position = position_dodge(width = 0.8), 
+    vjust = -0.5, size = 3.5 # 在柱形顶部添加数据标签
+  )
+
+
+# Male: Analyze health status and comprehensive fertility intention
+ggplot(male_key2 %>%
+         group_by(health_status, comprehensive_intention) %>%
+         summarise(count = n())) +
+  aes(x = health_status, y = count, fill = as.factor(comprehensive_intention)) +
+  geom_bar(stat = "identity", position = position_dodge(width = 0.8)) +
+  scale_fill_manual(
+    values = c("#E69F00", "#56B4E9", "#009E73"), # 对比度更高的颜色
+    labels = c("Moderate", "No Intention", "Unknown") # 添加清晰标签
+  ) +
+  labs(
+    title = "Health Status and Male Future Reproductive Intention",
+    x = "Health Status",
+    y = "Count",
+    fill = "Reproductive Intention"
+  ) +
+  theme_minimal(base_size = 14) +
+  theme(
+    plot.title = element_text(face = "bold", hjust = 0.5, size = 16), # 加粗标题
+    axis.title.x = element_text(size = 14),
+    axis.title.y = element_text(size = 14),
+    axis.text.x = element_text(angle = 45, hjust = 1, size = 12), # 旋转X轴标签
+    legend.position = "top", # 图例放置在顶部
+    legend.title = element_text(size = 12),
+    legend.text = element_text(size = 12)
+  ) +
+  geom_text(
+    aes(label = count), 
+    position = position_dodge(width = 0.8), 
+    vjust = -0.5, size = 3.5 # 添加柱形顶部的数据标签
+  )
+
+# Male: Analyze health access and comprehensive fertility intention
+ggplot(male_key2 %>%
+         group_by(health_access, comprehensive_intention) %>%
+         summarise(count = n())) +
+  aes(x = health_access, y = count, fill = as.factor(comprehensive_intention)) +
+  geom_bar(stat = "identity", position = position_dodge(width = 0.8)) +
+  scale_fill_manual(
+    values = c("#E69F00", "#56B4E9", "#009E73"), # 对比度更高的颜色
+    labels = c("Moderate", "No Intention", "Unknown") # 添加清晰标签
+  ) +
+  labs(
+    title = "Receipt of Service and Male Future Reproductive Intention",
+    x = "The Receipt of Service",
+    y = "Count",
+    fill = "Reproductive Intention"
+  ) +
+  theme_minimal(base_size = 14) +
+  theme(
+    plot.title = element_text(face = "bold", hjust = 0.5, size = 16), # 加粗标题
+    axis.title.x = element_text(size = 14),
+    axis.title.y = element_text(size = 14),
+    axis.text.x = element_text(angle = 45, hjust = 1, size = 12), # 旋转X轴标签
+    legend.position = "top", # 图例放置在顶部
+    legend.title = element_text(size = 12),
+    legend.text = element_text(size = 12)
+  ) +
+  geom_text(
+    aes(label = count), 
+    position = position_dodge(width = 0.8), 
+    vjust = -0.5, size = 3.5 # 添加柱形顶部的数据标签
+  )
+
+# Significance tests: Chi-squared tests for the relationship between health status, access, and fertility intention
+
+print(table(female_key2$health_status, female_key2$comprehensive_intention))
+print(table(female_key2$health_access, female_key2$comprehensive_intention))
+print(table(male_key2$health_status, male_key2$comprehensive_intention))
+print(table(male_key2$health_access, male_key2$comprehensive_intention))
+
+# Female data
+chisq_test_female_status <- chisq.test(table(female_key2$health_status, female_key2$comprehensive_intention))
+print(chisq_test_female_status)
+
+chisq_test_female_access <- chisq.test(table(female_key2$health_access, female_key2$comprehensive_intention))
+print(chisq_test_female_access)
+
+# Male data
+chisq_test_male_status <- chisq.test(table(male_key2$health_status, male_key2$comprehensive_intention))
+print(chisq_test_female_status)
+
+chisq_test_male_access <- chisq.test(table(male_key2$health_access, male_key2$comprehensive_intention))
+print(chisq_test_male_access)
+
+
+# Build GLM models to analyze the effect of health status and access on fertility intention
+# Female: Analyze interaction effects
+female_key2 <- female_key2 %>%
+  mutate(
+    binary_intention = ifelse(
+      comprehensive_intention %in% c("Strong", "Moderate"), 1, 0
+    )
+  )
+
+model_female_interaction <- glm(
+  binary_intention ~ health_status * health_access,
+  data = female_key2,
+  family = binomial
+)
+summary(model_female_interaction)
+
+# Female: Analyze moderating effects of education
+model_female_education <- glm(
+  binary_intention ~ health_status * health_access + education_overall,
+  data = female_key2,
+  family = binomial
+)
+summary(model_female_education)
+
+# Male: Analyze interaction effects
+male_key2 <- male_key2 %>%
+  mutate(
+    binary_intention = ifelse(
+      comprehensive_intention %in% c("Strong", "Moderate"), 1, 0
+    )
+  )
+
+model_male_interaction <- glm(
+  binary_intention ~ health_status * health_access,
+  data = male_key2,
+  family = binomial
+)
+summary(model_male_interaction)
+
+# Male: Analyze moderating effects of education
+model_male_education <- glm(
+  binary_intention ~ health_status * health_access + education_overall,
+  data = male_key2,
+  family = binomial
+)
+summary(model_male_education)
+
+
+
+
+
+# Combine male and female data to analyze gender differences in health status, access, and fertility intention
+# Extract health-related variables from male and female datasets
+male_health <- male_key2 %>% select(health_status, health_access)
+female_health <- female_key2 %>% select(health_status, health_access)
+
+# Add gender column to male and female health datasets (for consistency)
+male_health <- male_health %>% mutate(gender = "male")
+female_health <- female_health %>% mutate(gender = "female")
+
+# Combine male and female health-related data
+health_combined <- bind_rows(female_health, male_health)
+
+# Add health variables to the combined dataset
+combined_data <- combined_data %>%
+  bind_cols(health_combined %>% select(health_status, health_access))
+
+# Convert comprehensive fertility intention into binary (1 for strong/moderate, 0 for no/unknown)
+combined_data <- combined_data %>%
+  mutate(
+    binary_intention = ifelse(
+      comprehensive_intention %in% c("Very Strong", "Moderate"), 1, 0
+    )
+  )
+
+# Justify H1
+# Global model: interaction between health status, health access, and gender
+model_gender_interaction <- glm(
+  binary_intention ~ health_status * health_access * gender,
+  data = combined_data,
+  family = binomial
+)
+
+summary(model_gender_interaction)
+
+# Simplified model: without gender interaction terms
+model_no_gender_interaction <- glm(
+  binary_intention ~ health_status * health_access,
+  data = combined_data,
+  family = binomial
+)
+
+# Likelihood ratio test to compare models (with vs. without gender interactions)
+anova(model_no_gender_interaction, model_gender_interaction, test = "Chisq")
+
+# Visualization: Interaction between health status, access, and gender on fertility intention
+ggplot(combined_data, aes(x = health_status, y = binary_intention, color = gender)) +
+  geom_point(position = position_jitter(width = 0.1, height = 0.02)) +
+  geom_smooth(method = "glm", method.args = list(family = "binomial"), se = TRUE) +
+  facet_wrap(~ health_access) +
+  labs(
+    title = "Interaction of Health Status, Access, and Gender on Fertility Intention",
+    x = "Health Status",
+    y = "Probability of Fertility Intention"
+  ) +
+  theme_minimal()
+
+# Add education level to the model: interaction with health status, access, and gender
+model_combined <- glm(
+  binary_intention ~ health_status * health_access * gender + education_overall,
+  data = combined_data,
+  family = binomial
+)
+summary(model_combined)
+
+# Visualization: Effect of health status, access, and education level on fertility intention by gender
+ggplot(combined_data, aes(x = health_status, y = binary_intention, color = gender)) +
+  geom_point(position = position_jitter(width = 0.1, height = 0.02)) +
+  geom_smooth(method = "glm", method.args = list(family = "binomial"), se = TRUE) +
+  facet_wrap(~ education_overall) +
+  labs(
+    title = "Interaction of Health Status, Access, Education Level, and Gender on Fertility Intention",
+    x = "Health Status",
+    y = "Probability of Fertility Intention"
+  ) +
+  theme_minimal()
+
+```
